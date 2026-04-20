@@ -1,0 +1,28 @@
+name: har_app
+description: "Human Activity Recognition - collect IMU sensor data for research."
+publish_to: 'none'
+
+version: 0.1.0+1
+
+environment:
+  sdk: ^3.10.4
+
+dependencies:
+  flutter:
+    sdk: flutter
+
+  cupertino_icons: ^1.0.8
+  sensors_plus: ^6.1.1
+  shared_preferences: ^2.3.3
+  path_provider: ^2.1.5
+  uuid: ^4.5.1
+  intl: ^0.20.1
+  share_plus: ^10.1.2
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^6.0.0
+
+flutter:
+  uses-material-design: true

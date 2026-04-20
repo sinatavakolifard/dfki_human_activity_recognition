@@ -1,0 +1,49 @@
+import 'dart:convert';
+
+class SessionMetadata {
+  final String sessionId;
+  final String userId;
+  final DateTime startedAt;
+  final DateTime endedAt;
+  final int sampleCount;
+  final int targetHz;
+  final String relativePath;
+
+  const SessionMetadata({
+    required this.sessionId,
+    required this.userId,
+    required this.startedAt,
+    required this.endedAt,
+    required this.sampleCount,
+    required this.targetHz,
+    required this.relativePath,
+  });
+
+  Duration get duration => endedAt.difference(startedAt);
+
+  Map<String, dynamic> toJson() => {
+        'sessionId': sessionId,
+        'userId': userId,
+        'startedAt': startedAt.toIso8601String(),
+        'endedAt': endedAt.toIso8601String(),
+        'sampleCount': sampleCount,
+        'targetHz': targetHz,
+        'relativePath': relativePath,
+      };
+
+  factory SessionMetadata.fromJson(Map<String, dynamic> json) =>
+      SessionMetadata(
+        sessionId: json['sessionId'] as String,
+        userId: json['userId'] as String,
+        startedAt: DateTime.parse(json['startedAt'] as String),
+        endedAt: DateTime.parse(json['endedAt'] as String),
+        sampleCount: json['sampleCount'] as int,
+        targetHz: json['targetHz'] as int,
+        relativePath: json['relativePath'] as String,
+      );
+
+  String encode() => jsonEncode(toJson());
+
+  static SessionMetadata decode(String raw) =>
+      SessionMetadata.fromJson(jsonDecode(raw) as Map<String, dynamic>);
+}
