@@ -22,7 +22,7 @@ something material changes.
    explicitly not collected. Blocks the rest of the app until accepted.
 2. **Onboarding screen** (`lib/screens/onboarding_screen.dart`) — generates
    an anonymous UUID on first run. Collects optional age / height / weight /
-   sex. Reachable later for edits from the home screen.
+   gender. Reachable later for edits from the home screen.
 3. **Home screen** (`lib/screens/home_screen.dart`) — single big round
    Start/Stop button. Shows live IMU readout, elapsed time, sample counter.
    Auto-stops when the per-session maximum time is reached.

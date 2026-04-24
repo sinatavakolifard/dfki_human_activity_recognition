@@ -1,13 +1,13 @@
 import 'dart:convert';
 
-enum Sex { male, female, other, preferNotToSay }
+enum Gender { male, female, other, preferNotToSay }
 
-extension SexLabel on Sex {
+extension GenderLabel on Gender {
   String get label => switch (this) {
-        Sex.male => 'Male',
-        Sex.female => 'Female',
-        Sex.other => 'Other',
-        Sex.preferNotToSay => 'Prefer not to say',
+        Gender.male => 'Male',
+        Gender.female => 'Female',
+        Gender.other => 'Other',
+        Gender.preferNotToSay => 'Prefer not to say',
       };
 }
 
@@ -16,7 +16,7 @@ class UserProfile {
   final int? ageYears;
   final double? heightCm;
   final double? weightKg;
-  final Sex? sex;
+  final Gender? gender;
   final DateTime createdAt;
 
   const UserProfile({
@@ -25,14 +25,14 @@ class UserProfile {
     this.ageYears,
     this.heightCm,
     this.weightKg,
-    this.sex,
+    this.gender,
   });
 
   UserProfile copyWith({
     int? ageYears,
     double? heightCm,
     double? weightKg,
-    Sex? sex,
+    Gender? gender,
   }) {
     return UserProfile(
       userId: userId,
@@ -40,7 +40,7 @@ class UserProfile {
       ageYears: ageYears ?? this.ageYears,
       heightCm: heightCm ?? this.heightCm,
       weightKg: weightKg ?? this.weightKg,
-      sex: sex ?? this.sex,
+      gender: gender ?? this.gender,
     );
   }
 
@@ -50,7 +50,7 @@ class UserProfile {
         'ageYears': ageYears,
         'heightCm': heightCm,
         'weightKg': weightKg,
-        'sex': sex?.name,
+        'gender': gender?.name,
       };
 
   factory UserProfile.fromJson(Map<String, dynamic> json) => UserProfile(
@@ -59,9 +59,9 @@ class UserProfile {
         ageYears: json['ageYears'] as int?,
         heightCm: (json['heightCm'] as num?)?.toDouble(),
         weightKg: (json['weightKg'] as num?)?.toDouble(),
-        sex: json['sex'] == null
+        gender: json['gender'] == null
             ? null
-            : Sex.values.firstWhere((s) => s.name == json['sex']),
+            : Gender.values.firstWhere((g) => g.name == json['gender']),
       );
 
   String encode() => jsonEncode(toJson());

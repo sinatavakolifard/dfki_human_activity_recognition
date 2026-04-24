@@ -23,7 +23,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
   final _ageCtl = TextEditingController();
   final _heightCtl = TextEditingController();
   final _weightCtl = TextEditingController();
-  Sex? _sex;
+  Gender? _gender;
 
   UserProfile? _profile;
 
@@ -42,7 +42,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
       if (existing.weightKg != null) {
         _weightCtl.text = existing.weightKg!.toStringAsFixed(0);
       }
-      _sex = existing.sex;
+      _gender = existing.gender;
     }
   }
 
@@ -60,7 +60,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
       ageYears: int.tryParse(_ageCtl.text.trim()),
       heightCm: double.tryParse(_heightCtl.text.trim()),
       weightKg: double.tryParse(_weightCtl.text.trim()),
-      sex: _sex,
+      gender: _gender,
     );
     await widget.storage.saveUserProfile(updated);
     if (!mounted) return;
@@ -148,21 +148,21 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
               ),
             ),
             const SizedBox(height: 12),
-            DropdownButtonFormField<Sex?>(
-              initialValue: _sex,
+            DropdownButtonFormField<Gender?>(
+              initialValue: _gender,
               decoration: const InputDecoration(
-                labelText: 'Sex',
+                labelText: 'Gender',
                 border: OutlineInputBorder(),
               ),
               items: [
-                const DropdownMenuItem<Sex?>(
+                const DropdownMenuItem<Gender?>(
                   value: null,
                   child: Text('—'),
                 ),
-                for (final s in Sex.values)
-                  DropdownMenuItem(value: s, child: Text(s.label)),
+                for (final g in Gender.values)
+                  DropdownMenuItem(value: g, child: Text(g.label)),
               ],
-              onChanged: (v) => setState(() => _sex = v),
+              onChanged: (v) => setState(() => _gender = v),
             ),
             const SizedBox(height: 32),
             FilledButton(

@@ -77,7 +77,7 @@ class ConsentScreen extends StatelessWidget {
                         body:
                             'We generate a random anonymous ID for this '
                             'install. You are never asked to log in. You may '
-                            'optionally share age, height, weight and sex to '
+                            'optionally share age, height, weight and gender to '
                             'help the research.',
                       ),
                       _Section(
