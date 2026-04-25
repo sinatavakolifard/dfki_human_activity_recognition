@@ -25,7 +25,10 @@ something material changes.
    gender. Reachable later for edits from the home screen.
 3. **Home screen** (`lib/screens/home_screen.dart`) — single big round
    Start/Stop button. Shows live IMU readout, elapsed time, sample counter.
-   Auto-stops when the per-session maximum time is reached.
+   Auto-stops when the per-session maximum time is reached. Optional
+   activity-description text field above the button (editable before,
+   during, and after recording); on Stop with an empty field, a dialog
+   prompts the user to add a label or skip.
 4. **Preferences screen** (`lib/screens/preferences_screen.dart`) — choice
    chips for max recording time (5, 15, 30, 60, 120 min). Destructive
    "delete all data" action with confirmation dialog.
@@ -52,6 +55,8 @@ something material changes.
 - **Metadata index**: `StorageService` persists a JSON list of
   `SessionMetadata` entries in `SharedPreferences`
   (`sessions_index_v1`), keyed by session UUID, pointing to the CSV on disk.
+  Each entry also carries an optional user-supplied `description` (the
+  activity label entered on the home screen).
 
 ## Privacy / store-readiness
 

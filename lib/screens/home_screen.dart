@@ -25,6 +25,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
   static const int _targetHz = 34;
 
   final SensorService _service = SensorService(targetHz: _targetHz);
+  final TextEditingController _descriptionCtl = TextEditingController();
   StreamSubscription<SensorSample>? _sub;
   SessionWriter? _writer;
   Timer? _elapsedTimer;
@@ -51,6 +52,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
     _autoStopTimer?.cancel();
     _writer?.close();
     _service.dispose();
+    _descriptionCtl.dispose();
     super.dispose();
   }
 
@@ -101,9 +103,9 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
     } catch (e) {
       await _cleanupFailedStart();
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Could not start: $e')),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Could not start: $e')));
       }
     } finally {
       if (mounted) setState(() => _busy = false);
@@ -137,6 +139,12 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
       _autoStopTimer?.cancel();
       await writer?.close();
 
+      String description = _descriptionCtl.text.trim();
+      if (description.isEmpty && mounted) {
+        final fromDialog = await _promptForDescription();
+        description = (fromDialog ?? '').trim();
+      }
+
       final profile = await widget.storage.ensureUserProfile();
       final relative = 'sessions/$sessionId.csv';
       final metadata = SessionMetadata(
@@ -147,21 +155,23 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
         sampleCount: _samplesWritten,
         targetHz: _targetHz,
         relativePath: relative,
+        description: description.isEmpty ? null : description,
       );
       await widget.storage.addSession(metadata);
+      _descriptionCtl.clear();
 
       if (!mounted) return;
       final seconds = endedAt.difference(startedAt).inSeconds;
       final msg = reason == 'auto'
           ? 'Max recording time reached. Saved $_samplesWritten samples '
-              '(${seconds}s).'
+                '(${seconds}s).'
           : 'Saved $_samplesWritten samples (${seconds}s).';
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(msg)));
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error stopping: $e')),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Error stopping: $e')));
       }
     } finally {
       _writer = null;
@@ -173,6 +183,14 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
         });
       }
     }
+  }
+
+  Future<String?> _promptForDescription() {
+    return showDialog<String?>(
+      context: context,
+      barrierDismissible: false,
+      builder: (ctx) => const _LabelPromptDialog(),
+    );
   }
 
   String _formatElapsed() {
@@ -190,6 +208,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
     final profile = widget.storage.userProfile;
 
     return Scaffold(
+      resizeToAvoidBottomInset: false,
       appBar: AppBar(
         title: const Text('HAR Recorder'),
         actions: [
@@ -236,38 +255,122 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
         ],
       ),
       body: SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.fromLTRB(24, 16, 24, 24),
-          child: Column(
-            children: [
-              _StatusBanner(
-                isRecording: _isRecording,
-                elapsed: _formatElapsed(),
-                samples: _samplesWritten,
-                targetHz: _targetHz,
-              ),
-              const SizedBox(height: 24),
-              _LiveReadout(sample: _latestSample),
-              const Spacer(),
-              _BigButton(
-                isRecording: _isRecording,
-                busy: _busy,
-                onTap: _toggle,
-              ),
-              const SizedBox(height: 16),
-              Text(
-                profile == null
-                    ? 'No profile yet'
-                    : 'User ${profile.userId.substring(0, 8)} · '
-                        'max ${prefs.maxRecordingMinutes} min',
-                style: theme.textTheme.bodySmall?.copyWith(
-                  color: theme.colorScheme.onSurfaceVariant,
+        child: GestureDetector(
+          behavior: HitTestBehavior.opaque,
+          onTap: () => FocusScope.of(context).unfocus(),
+          child: LayoutBuilder(
+            builder: (context, constraints) => SingleChildScrollView(
+              child: ConstrainedBox(
+                constraints: BoxConstraints(minHeight: constraints.maxHeight),
+                child: IntrinsicHeight(
+                  child: Padding(
+                    padding: const EdgeInsets.fromLTRB(24, 16, 24, 24),
+                    child: Column(
+                      children: [
+                        _StatusBanner(
+                          isRecording: _isRecording,
+                          elapsed: _formatElapsed(),
+                          samples: _samplesWritten,
+                          targetHz: _targetHz,
+                        ),
+                        const SizedBox(height: 24),
+                        _LiveReadout(sample: _latestSample),
+                        const SizedBox(height: 24),
+                        TextField(
+                          controller: _descriptionCtl,
+                          minLines: 1,
+                          maxLines: 2,
+                          textCapitalization: TextCapitalization.sentences,
+                          decoration: InputDecoration(
+                            labelText: 'What are you doing? (optional)',
+                            hintText: 'e.g. walking upstairs',
+                            border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(16),
+                            ),
+                          ),
+                        ),
+                        const Spacer(),
+                        _BigButton(
+                          isRecording: _isRecording,
+                          busy: _busy,
+                          onTap: _toggle,
+                        ),
+                        const SizedBox(height: 16),
+                        Text(
+                          profile == null
+                              ? 'No profile yet'
+                              : 'User ${profile.userId.substring(0, 8)} · '
+                                    'max ${prefs.maxRecordingMinutes} min',
+                          style: theme.textTheme.bodySmall?.copyWith(
+                            color: theme.colorScheme.onSurfaceVariant,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
                 ),
               ),
-            ],
+            ),
           ),
         ),
       ),
+    );
+  }
+}
+
+class _LabelPromptDialog extends StatefulWidget {
+  const _LabelPromptDialog();
+
+  @override
+  State<_LabelPromptDialog> createState() => _LabelPromptDialogState();
+}
+
+class _LabelPromptDialogState extends State<_LabelPromptDialog> {
+  final TextEditingController _ctl = TextEditingController();
+
+  @override
+  void dispose() {
+    _ctl.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AlertDialog(
+      scrollable: true,
+      title: const Text('Label this recording?'),
+      content: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text(
+            'A short note about what you were doing helps researchers '
+            'interpret the data. Optional but recommended.',
+          ),
+          const SizedBox(height: 16),
+          TextField(
+            controller: _ctl,
+            autofocus: true,
+            maxLines: 2,
+            minLines: 1,
+            textCapitalization: TextCapitalization.sentences,
+            decoration: const InputDecoration(
+              hintText: 'e.g. walking upstairs',
+              border: OutlineInputBorder(),
+            ),
+          ),
+        ],
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.of(context).pop(null),
+          child: const Text('Skip'),
+        ),
+        FilledButton(
+          onPressed: () => Navigator.of(context).pop(_ctl.text.trim()),
+          child: const Text('Save'),
+        ),
+      ],
     );
   }
 }
@@ -321,8 +424,7 @@ class _StatusBanner extends StatelessWidget {
                   isRecording
                       ? '$elapsed · $samples samples · target ${targetHz}Hz'
                       : 'Tap Start to record IMU at ${targetHz}Hz',
-                  style:
-                      theme.textTheme.bodySmall?.copyWith(color: onColor),
+                  style: theme.textTheme.bodySmall?.copyWith(color: onColor),
                 ),
               ],
             ),
@@ -385,10 +487,8 @@ class _LiveReadout extends StatelessWidget {
               ),
             )
           else ...[
-            row('accel', s.accelX, s.accelY, s.accelZ,
-                Icons.speed_outlined),
-            row('gyro', s.gyroX, s.gyroY, s.gyroZ,
-                Icons.rotate_right_outlined),
+            row('accel', s.accelX, s.accelY, s.accelZ, Icons.speed_outlined),
+            row('gyro', s.gyroX, s.gyroY, s.gyroZ, Icons.rotate_right_outlined),
             row('mag', s.magX, s.magY, s.magZ, Icons.explore_outlined),
           ],
         ],

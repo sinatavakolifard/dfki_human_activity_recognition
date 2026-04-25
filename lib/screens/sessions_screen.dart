@@ -88,14 +88,21 @@ class _SessionsScreenState extends State<SessionsScreen> {
                   final duration = s.duration;
                   final durText =
                       '${duration.inMinutes}m ${duration.inSeconds % 60}s';
+                  final hasDesc =
+                      s.description != null && s.description!.isNotEmpty;
+                  final stats =
+                      '$durText · ${s.sampleCount} samples · ${s.targetHz} Hz';
                   return Card(
                     margin: EdgeInsets.zero,
                     child: ListTile(
                       leading: const Icon(Icons.insert_drive_file_outlined),
-                      title: Text(dateFmt.format(s.startedAt)),
+                      title: Text(
+                        hasDesc ? s.description! : dateFmt.format(s.startedAt),
+                      ),
                       subtitle: Text(
-                        '$durText · ${s.sampleCount} samples · '
-                        '${s.targetHz} Hz',
+                        hasDesc
+                            ? '${dateFmt.format(s.startedAt)} · $stats'
+                            : stats,
                       ),
                       trailing: PopupMenuButton<String>(
                         onSelected: (v) {

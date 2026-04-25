@@ -8,6 +8,7 @@ class SessionMetadata {
   final int sampleCount;
   final int targetHz;
   final String relativePath;
+  final String? description;
 
   const SessionMetadata({
     required this.sessionId,
@@ -17,6 +18,7 @@ class SessionMetadata {
     required this.sampleCount,
     required this.targetHz,
     required this.relativePath,
+    this.description,
   });
 
   Duration get duration => endedAt.difference(startedAt);
@@ -29,6 +31,7 @@ class SessionMetadata {
         'sampleCount': sampleCount,
         'targetHz': targetHz,
         'relativePath': relativePath,
+        'description': description,
       };
 
   factory SessionMetadata.fromJson(Map<String, dynamic> json) =>
@@ -40,6 +43,7 @@ class SessionMetadata {
         sampleCount: json['sampleCount'] as int,
         targetHz: json['targetHz'] as int,
         relativePath: json['relativePath'] as String,
+        description: json['description'] as String?,
       );
 
   String encode() => jsonEncode(toJson());
