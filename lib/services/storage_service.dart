@@ -22,11 +22,42 @@ class AppPreferences {
   }
 }
 
+class BackendConfig {
+  final String baseUrl;
+  final String apiKey;
+  final bool uploadOptIn;
+
+  const BackendConfig({
+    this.baseUrl = '',
+    this.apiKey = '',
+    this.uploadOptIn = false,
+  });
+
+  bool get isConfigured => baseUrl.isNotEmpty && apiKey.isNotEmpty;
+
+  bool get isReadyForUpload => isConfigured && uploadOptIn;
+
+  BackendConfig copyWith({
+    String? baseUrl,
+    String? apiKey,
+    bool? uploadOptIn,
+  }) {
+    return BackendConfig(
+      baseUrl: baseUrl ?? this.baseUrl,
+      apiKey: apiKey ?? this.apiKey,
+      uploadOptIn: uploadOptIn ?? this.uploadOptIn,
+    );
+  }
+}
+
 class StorageService {
   static const _kConsentAccepted = 'consent_accepted_v1';
   static const _kUserProfile = 'user_profile_v1';
   static const _kMaxRecordingMinutes = 'max_recording_minutes';
   static const _kSessionsIndex = 'sessions_index_v1';
+  static const _kBackendBaseUrl = 'backend_base_url';
+  static const _kBackendApiKey = 'backend_api_key';
+  static const _kBackendUploadOptIn = 'backend_upload_opt_in';
 
   static const List<int> recordingDurationChoicesMinutes = [5, 15, 30, 60, 120];
 
@@ -77,6 +108,18 @@ class StorageService {
     await _prefs.setInt(_kMaxRecordingMinutes, p.maxRecordingMinutes);
   }
 
+  BackendConfig get backendConfig => BackendConfig(
+        baseUrl: _prefs.getString(_kBackendBaseUrl) ?? '',
+        apiKey: _prefs.getString(_kBackendApiKey) ?? '',
+        uploadOptIn: _prefs.getBool(_kBackendUploadOptIn) ?? false,
+      );
+
+  Future<void> saveBackendConfig(BackendConfig config) async {
+    await _prefs.setString(_kBackendBaseUrl, config.baseUrl);
+    await _prefs.setString(_kBackendApiKey, config.apiKey);
+    await _prefs.setBool(_kBackendUploadOptIn, config.uploadOptIn);
+  }
+
   Future<Directory> _sessionsDir() async {
     final root = await getApplicationDocumentsDirectory();
     final dir = Directory('${root.path}/sessions');
@@ -114,6 +157,24 @@ class StorageService {
     final current = _prefs.getStringList(_kSessionsIndex) ?? <String>[];
     current.add(session.encode());
     await _prefs.setStringList(_kSessionsIndex, current);
+  }
+
+  Future<void> markSessionUploaded(String sessionId, DateTime when) async {
+    final current = _prefs.getStringList(_kSessionsIndex) ?? <String>[];
+    final updated = <String>[];
+    for (final entry in current) {
+      try {
+        final s = SessionMetadata.decode(entry);
+        if (s.sessionId == sessionId) {
+          updated.add(s.copyWith(uploadedAt: when).encode());
+        } else {
+          updated.add(entry);
+        }
+      } catch (_) {
+        updated.add(entry);
+      }
+    }
+    await _prefs.setStringList(_kSessionsIndex, updated);
   }
 
   Future<void> deleteSession(String sessionId) async {

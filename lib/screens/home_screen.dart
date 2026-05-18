@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:io';
 
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
@@ -6,6 +7,8 @@ import 'package:uuid/uuid.dart';
 
 import '../models/sensor_sample.dart';
 import '../models/session.dart';
+import '../models/user_profile.dart';
+import '../services/har_api.dart';
 import '../services/sensor_service.dart';
 import '../services/storage_service.dart';
 import 'onboarding_screen.dart';
@@ -167,6 +170,8 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                 '(${seconds}s).'
           : 'Saved $_samplesWritten samples (${seconds}s).';
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(msg)));
+
+      unawaited(_maybeUploadSession(metadata, profile));
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(
@@ -191,6 +196,54 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
       barrierDismissible: false,
       builder: (ctx) => const _LabelPromptDialog(),
     );
+  }
+
+  Future<void> _maybeUploadSession(
+    SessionMetadata metadata,
+    UserProfile profile,
+  ) async {
+    final backend = widget.storage.backendConfig;
+    if (!backend.isReadyForUpload) return;
+    final path =
+        await widget.storage.sessionFileFullPath(metadata.relativePath);
+    final file = File(path);
+    if (!await file.exists()) return;
+
+    final api = HarApi(baseUrl: backend.baseUrl, apiKey: backend.apiKey);
+    try {
+      await api.upsertUser(
+        userId: profile.userId,
+        ageYears: profile.ageYears,
+        heightCm: profile.heightCm,
+        weightKg: profile.weightKg,
+        gender: profile.gender,
+      );
+      await api.uploadSession(
+        sessionId: metadata.sessionId,
+        userId: metadata.userId,
+        startedAt: metadata.startedAt,
+        duration: metadata.duration,
+        sampleCount: metadata.sampleCount,
+        targetHz: metadata.targetHz,
+        description: metadata.description,
+        csvFile: file,
+      );
+      await widget.storage
+          .markSessionUploaded(metadata.sessionId, DateTime.now());
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Recording uploaded to backend.')),
+      );
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Upload failed: $e. Retry from Sessions later.'),
+        ),
+      );
+    } finally {
+      api.close();
+    }
   }
 
   String _formatElapsed() {

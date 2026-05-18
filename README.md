@@ -13,7 +13,7 @@ something material changes.
 - Bundle / package id: `de.dfki.har_app`
 - `flutter analyze`: clean
 - `flutter test`: 1 passing (theme smoke test)
-- Last session end: 2026-04-20
+- Last session end: 2026-05-18
 
 ## What works end-to-end today
 
@@ -33,8 +33,12 @@ something material changes.
    chips for max recording time (5, 15, 30, 60, 120 min). Destructive
    "delete all data" action with confirmation dialog.
 5. **Sessions screen** (`lib/screens/sessions_screen.dart`) — lists saved
-   sessions with start time, duration, sample count, target Hz. Per-session
-   share (CSV) and delete actions.
+   sessions with start time, duration, sample count, target Hz, and upload
+   status. Per-session share (CSV), upload-to-backend, and delete actions.
+6. **Backend uploads** (opt-in) — when configured in Preferences, completed
+   recordings are sent to the sibling `dfki_har_backend` FastAPI service
+   (see `lib/services/har_api.dart`). Failures keep the local CSV so the
+   user can retry from the Sessions list.
 
 ## Data pipeline
 
@@ -67,7 +71,9 @@ something material changes.
   Play Store compatibility — see next-steps if a device lacks one).
 - User identity: random v4 UUID generated locally; no account system.
 - Data stays on device unless the user explicitly shares a CSV via the
-  system share sheet (implemented) or uploads to a server (future).
+  system share sheet or opts in to backend uploads in Preferences. Backend
+  base URL + API key are user-supplied and persisted in SharedPreferences;
+  the upload toggle is off by default.
 
 ## Dependencies pinned in `pubspec.yaml`
 
@@ -77,6 +83,8 @@ something material changes.
 - `uuid: ^4.5.1` — user and session IDs
 - `intl: ^0.20.1` — number and date formatting
 - `share_plus: ^10.1.2` — system share sheet for CSVs
+- `http: ^1.2.2` — backend client
+- `crypto: ^3.0.5` — SHA-256 for upload integrity check
 
 ## Project layout
 
@@ -91,6 +99,7 @@ lib/
   services/
     storage_service.dart          # SharedPreferences + CSV file layout
     sensor_service.dart           # 34 Hz aligned IMU stream + SessionWriter
+    har_api.dart                  # FastAPI client (upsertUser, uploadSession)
   screens/
     consent_screen.dart
     onboarding_screen.dart
@@ -108,8 +117,13 @@ lib/
   importable into pandas / numpy / R.
 - **No login**. Anonymous UUID stored locally. This avoids needing any data
   protection declaration beyond motion sensor usage for the stores.
-- **Opt-in uploading deferred**. All networking is out of scope until there
-  is a backend to talk to, at which point we add an explicit consent step.
+- **Opt-in uploading**. Backend uploads are off by default; the Preferences
+  screen exposes server URL + API key fields and a separate "Upload
+  recordings" switch. The switch refuses to turn on until both fields are
+  filled. Failed uploads keep the local CSV so the Sessions screen can
+  retry. Backend integrity is enforced server-side via SHA-256 +
+  uncompressed-length checks on the gzipped CSV (see
+  `../dfki_har_backend/README.md`).
 
 ## Next steps (not done yet)
 
@@ -119,7 +133,9 @@ lib/
   dependency.
 - Background recording on Android via a foreground service. Currently a
   screen lock or app backgrounding will pause the sensor streams.
-- Upload endpoint + explicit upload consent for the planned research DB.
+- Background retry queue for failed uploads (currently the user has to tap
+  "Upload to backend" from the Sessions screen). Today's wiring is one
+  attempt at stop time + manual retry.
 - App icons and splash branding (still Flutter defaults).
 - Localization (currently English-only).
 - Android release signing config (still using debug keys via a TODO in
@@ -141,3 +157,23 @@ For a release artifact later:
 flutter build apk --release    # Android
 flutter build ipa --release    # iOS (macOS host + Xcode required)
 ```
+
+## Wiring it to the backend
+
+The sibling `dfki_har_backend` repo ships a FastAPI + Postgres service that
+ingests gzipped session CSVs. To send recordings there:
+
+1. Bring the backend up locally (`docker compose up --build` in
+   `../dfki_har_backend`) — it serves on `http://localhost:8000`.
+2. In the app, open Preferences → *Backend uploads*:
+   - **Server base URL** — `http://10.0.2.2:8000` for the Android emulator,
+     `http://localhost:8000` for the iOS simulator, or the LAN /
+     deployed URL.
+   - **API key** — the `HAR_API_KEY` value from `../dfki_har_backend/.env`.
+3. Tap **Test connection** — it hits `/health` and snackbar-confirms.
+4. Flip **Upload recordings** on. From then on, every Stop pushes the
+   gzipped CSV; older recordings can be sent from Sessions via the popup
+   menu → *Upload to backend*.
+
+See `../dfki_har_backend/README.md` for the API surface, deploy notes, and
+how to inspect stored sessions via psql or curl.

@@ -9,6 +9,7 @@ class SessionMetadata {
   final int targetHz;
   final String relativePath;
   final String? description;
+  final DateTime? uploadedAt;
 
   const SessionMetadata({
     required this.sessionId,
@@ -19,9 +20,29 @@ class SessionMetadata {
     required this.targetHz,
     required this.relativePath,
     this.description,
+    this.uploadedAt,
   });
 
   Duration get duration => endedAt.difference(startedAt);
+
+  bool get isUploaded => uploadedAt != null;
+
+  SessionMetadata copyWith({
+    String? description,
+    DateTime? uploadedAt,
+  }) {
+    return SessionMetadata(
+      sessionId: sessionId,
+      userId: userId,
+      startedAt: startedAt,
+      endedAt: endedAt,
+      sampleCount: sampleCount,
+      targetHz: targetHz,
+      relativePath: relativePath,
+      description: description ?? this.description,
+      uploadedAt: uploadedAt ?? this.uploadedAt,
+    );
+  }
 
   Map<String, dynamic> toJson() => {
         'sessionId': sessionId,
@@ -32,6 +53,7 @@ class SessionMetadata {
         'targetHz': targetHz,
         'relativePath': relativePath,
         'description': description,
+        'uploadedAt': uploadedAt?.toIso8601String(),
       };
 
   factory SessionMetadata.fromJson(Map<String, dynamic> json) =>
@@ -44,6 +66,9 @@ class SessionMetadata {
         targetHz: json['targetHz'] as int,
         relativePath: json['relativePath'] as String,
         description: json['description'] as String?,
+        uploadedAt: json['uploadedAt'] == null
+            ? null
+            : DateTime.parse(json['uploadedAt'] as String),
       );
 
   String encode() => jsonEncode(toJson());
