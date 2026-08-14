@@ -1,5 +1,10 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
 
+    <!-- Needed for backend uploads. Flutter only adds this to the debug and
+         profile manifests (for its own tooling channel), so without it here
+         release builds have no network access at all. -->
+    <uses-permission android:name="android.permission.INTERNET"/>
+
     <uses-feature android:name="android.hardware.sensor.accelerometer" android:required="true"/>
     <uses-feature android:name="android.hardware.sensor.gyroscope" android:required="true"/>
     <uses-feature android:name="android.hardware.sensor.compass" android:required="true"/>
