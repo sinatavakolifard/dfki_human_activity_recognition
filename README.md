@@ -1,21 +1,19 @@
-# HAR App — Progress Log
+# HAR App
 
 Human Activity Recognition (HAR) mobile app for Android and iOS, built with
-Flutter. Records inertial measurement unit (IMU) data for research. This
-file is the single source of truth across sessions — update it whenever
-something material changes.
+Flutter. Records inertial measurement unit (IMU) data (accelerometer,
+gyroscope, magnetometer) at 34 Hz for research. Recordings stay on the
+device by default; users can opt in to uploading them to the sibling
+[`dfki_har_backend`](../dfki_har_backend) FastAPI service.
 
-## Current status
+## At a glance
 
 - Version: 0.1.0+1
-- Platforms enabled: Android, iOS
-- Flutter SDK: ^3.10.4 (developed against Flutter 3.38.5 / Dart 3.10.4)
+- Platforms: Android, iOS
+- Flutter SDK: `^3.10.4` (developed against Flutter 3.38.5 / Dart 3.10.4)
 - Bundle / package id: `de.dfki.har_app`
-- `flutter analyze`: clean
-- `flutter test`: 1 passing (theme smoke test)
-- Last session end: 2026-05-18
 
-## What works end-to-end today
+## Features
 
 1. **Consent / privacy screen** (`lib/screens/consent_screen.dart`) — shown
    on first launch. Explains exactly what IMU data is collected and what is
@@ -125,23 +123,6 @@ lib/
   uncompressed-length checks on the gzipped CSV (see
   `../dfki_har_backend/README.md`).
 
-## Next steps (not done yet)
-
-- Wakelock while recording (add `wakelock_plus`) so the screen does not
-  sleep mid-session. The old `keepScreenOnWhileRecording` preference was
-  removed because it was wired to a no-op; reintroduce it together with the
-  dependency.
-- Background recording on Android via a foreground service. Currently a
-  screen lock or app backgrounding will pause the sensor streams.
-- Background retry queue for failed uploads (currently the user has to tap
-  "Upload to backend" from the Sessions screen). Today's wiring is one
-  attempt at stop time + manual retry.
-- App icons and splash branding (still Flutter defaults).
-- Localization (currently English-only).
-- Android release signing config (still using debug keys via a TODO in
-  `android/app/build.gradle.kts`).
-- Privacy policy URL for Play Store / App Store listing.
-
 ## How to run
 
 ```
@@ -177,3 +158,12 @@ ingests gzipped session CSVs. To send recordings there:
 
 See `../dfki_har_backend/README.md` for the API surface, deploy notes, and
 how to inspect stored sessions via psql or curl.
+
+## Project docs
+
+- `CLAUDE.md` files (root + `lib/`, `lib/models/`, `lib/services/`,
+  `lib/screens/`) — in-repo reference for people (and Claude Code) editing
+  the code: layering rules, invariants, and gotchas that aren't obvious
+  from reading the source alone.
+- `PROGRESS.md` — dated journal of what's been done, current status, and
+  the roadmap of what's not built yet.
